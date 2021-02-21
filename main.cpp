@@ -3,7 +3,45 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <glm/glm.hpp>
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
+//vectex structure
+struct Vertex
+{
+    glm::vec3 position;
+    glm::vec3 color;
+    glm::vec2 texcoord;
+};
+
+
+Vertex vertices[] = 
+{
+    glm::vec3(0.0f, 0.5f, 0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec2(0.f, 1.f),
+    glm::vec3(-0.5f, -0.5f, 0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec2(0.f, 0.f),
+    glm::vec3(0.5f, -0.5f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec2(1.f, 0.f)
+
+};
+
+unsigned nrVertices = sizeof(vertices) / sizeof(Vertex);
+
+GLuint indices[] = 
+{
+    0, 1, 2
+};
+
+unsigned nrIndices = sizeof(indices) / sizeof(GLuint);
+
+
+void updateInput(GLFWwindow* window)
+{
+    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+}
 
 bool loadShaders(GLuint &program)
 {
@@ -156,12 +194,55 @@ int main(void)
         glfwTerminate();
     }
 
+    //GL options
+    glEnable(GL_DEPTH_TEST);
+
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
     GLuint core_program;
     if(!loadShaders(core_program))
     {
         glfwTerminate();
     }
     
+    //VBO
+    GLuint VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
+    //VBO
+    GLuint VBO;
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+
+    //EBO
+    GLuint EBO;
+    glGenBuffers(1, &EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    //Enable
+    //position
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),(GLvoid*)offsetof(Vertex, position));
+    glEnableVertexAttribArray(0);
+    //color
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),(GLvoid*)offsetof(Vertex, color));
+    glEnableVertexAttribArray(1);
+    //texcoord
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),(GLvoid*)offsetof(Vertex, texcoord));
+    glEnableVertexAttribArray(2);
+
+    //Vind VAD
+    glBindVertexArray(0);
 
     //main loop
     while (!glfwWindowShouldClose(window))
@@ -169,10 +250,23 @@ int main(void)
         glfwPollEvents();
         
         //update
+        updateInput(window);
+
+        //draw
         glClearColor(0.f, 0.f, 0.f, 1.f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         //draw
+
+        //program
+        glUseProgram(core_program);
+
+        //bind vao
+        glBindVertexArray(VAO);
+
+        //draw
+        glDrawElements(GL_TRIANGLES, nrIndices, GL_UNSIGNED_INT, 0);
+
 
         //end draw
 
