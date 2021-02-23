@@ -4,6 +4,7 @@
 #include <vector>
 #include <GL/glew.h>
 #include "Shader.h"
+#include "Primitives.h"
 
 
 class Mesh
@@ -24,11 +25,13 @@ private:
 
 private:
     void initVAO(Vertex* vertexArray, const unsigned& nrVertices, GLuint* indexArray, const unsigned& nrIndices);
+    void initVAO(Primitives* primitive);
     void initModelMatrix();
 public:
     Mesh(Vertex* vertexArray, const unsigned& nrVertices, GLuint* indexArray, const unsigned& nrIndices, glm::vec3 position,
             glm::vec3 rotation,
             glm::vec3 scale);
+    Mesh(Primitives* primitive, glm::vec3 position, glm::vec3 rotation, glm::vec3 scale);
     ~Mesh();
 
 public:

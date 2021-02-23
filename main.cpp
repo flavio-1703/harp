@@ -11,6 +11,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "Shader.h"
 #include "Texture.h"
+#include "Game.h"
 
 //vectex structure
 struct Vertex
@@ -19,27 +20,6 @@ struct Vertex
     glm::vec3 color;
     glm::vec2 texcoord;
 };
-
-
-Vertex vertices[] = 
-{
-    glm::vec3(-0.5f, 0.5f, 0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec2(0.f, 1.f),
-    glm::vec3(-0.5f, -0.5f, 0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec2(0.f, 0.f),
-    glm::vec3(0.5f, -0.5f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec2(1.f, 0.f),
-    glm::vec3(0.5f, 0.5f, 0.f), glm::vec3(1.f, 1.f, 0.f), glm::vec2(0.f, 0.f)
-
-
-};
-
-unsigned nrVertices = sizeof(vertices) / sizeof(Vertex);
-
-GLuint indices[] = 
-{
-    0, 1, 2,
-    0, 2, 3
-};
-
-unsigned nrIndices = sizeof(indices) / sizeof(GLuint);
 
 
 void updateInput(GLFWwindow* window)
@@ -229,11 +209,10 @@ int main(void)
         updateInput(window);
 
         //draw
-        glClearColor(0.f, 0.f, 0.f, 1.f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        
 
         //draw
-
+        Game game("HARP", 1280, 720, 4, 0, false);
         
 
         //update
