@@ -7,6 +7,10 @@
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include "Shader.h"
+#include "Texture.h"
 
 //vectex structure
 struct Vertex
@@ -19,9 +23,11 @@ struct Vertex
 
 Vertex vertices[] = 
 {
-    glm::vec3(0.0f, 0.5f, 0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec2(0.f, 1.f),
+    glm::vec3(-0.5f, 0.5f, 0.f), glm::vec3(1.f, 0.f, 0.f), glm::vec2(0.f, 1.f),
     glm::vec3(-0.5f, -0.5f, 0.f), glm::vec3(0.f, 1.f, 0.f), glm::vec2(0.f, 0.f),
-    glm::vec3(0.5f, -0.5f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec2(1.f, 0.f)
+    glm::vec3(0.5f, -0.5f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec2(1.f, 0.f),
+    glm::vec3(0.5f, 0.5f, 0.f), glm::vec3(1.f, 1.f, 0.f), glm::vec2(0.f, 0.f)
+
 
 };
 
@@ -29,7 +35,8 @@ unsigned nrVertices = sizeof(vertices) / sizeof(Vertex);
 
 GLuint indices[] = 
 {
-    0, 1, 2
+    0, 1, 2,
+    0, 2, 3
 };
 
 unsigned nrIndices = sizeof(indices) / sizeof(GLuint);
@@ -43,110 +50,34 @@ void updateInput(GLFWwindow* window)
     }
 }
 
-bool loadShaders(GLuint &program)
+
+
+void updateInput(GLFWwindow* window, glm::vec3& position, glm::vec3& rotation, glm::vec3& scale)
 {
-    bool loadSuccsess = true;
-    char infoLog[512];
-    GLint success; 
-
-    std::string temp = "";
-    std::string src = "";
-
-    std::fstream in_file;
-
-    //vertex
-    in_file.open("vertex_core.glsl");
-
-    if(in_file.is_open())
+    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     {
-        while (std::getline(in_file, temp))
-        {
-            src +=temp + "\n";   
-        }
-        
+        position.z -= 0.01f;
     }
-    else
+    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
     {
-        std::cout << "Error: LoadShaders: could not open vertex shader" << std::endl;
-        loadSuccsess = false;
+        position.z += 0.01f;
     }
-
-    in_file.close();
-
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    const GLchar* vertSrc = src.c_str();
-    glShaderSource(vertexShader, 1, &vertSrc, NULL);
-    glCompileShader(vertexShader);
-
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success)
+    if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
     {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "Error, could not compile vertex shader" << std::endl;
-        std::cout << infoLog << "\n" << std::endl;
-        loadSuccsess = false;
+        position.x -= 0.01f;
     }
-    
-
-    temp = "";
-    src = "";
-
-    //fragment
-    in_file.open("fragment_core.glsl");
-    if (in_file.is_open())
+    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     {
-        while (std::getline(in_file, temp))
-        {
-           src += temp + "\n";
-        }
-        
+        position.x += 0.01f;
     }
-    else
+    if(glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
     {
-        std::cout << "Error: LoadShaders: could not open fragment shader" << std::endl;
-        loadSuccsess = false;
-        
+        rotation.y -= 1.f;
     }
-
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    const GLchar* frgSrc = src.c_str();
-    glShaderSource(fragmentShader, 1, &frgSrc, NULL);
-    glCompileShader(fragmentShader);
-    
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if(!success)
+    if(glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
     {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "Error: could not compile fragment shader" << std::endl;
-        loadSuccsess = false;
+        rotation.y += 1.f;
     }
-
-    //program
-    program = glCreateProgram();
-
-    //attach
-    glAttachShader(program, vertexShader);
-    glAttachShader(program, fragmentShader);
-    
-    //link
-    glLinkProgram(program);
-
-
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-    if(!success)
-    {
-        glGetProgramInfoLog(program, 512, NULL, infoLog);
-        std::cout << "Error: program did no link correctly!" << std::endl;
-        std::cout << infoLog << std::endl;
-        loadSuccsess = false;
-    }
-
-    //end
-    glUseProgram(0);
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-
-    return loadSuccsess;
 }
 
 int main(void)
@@ -206,11 +137,14 @@ int main(void)
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    GLuint core_program;
-    if(!loadShaders(core_program))
-    {
-        glfwTerminate();
-    }
+
+    Shader core_program("vertex_core.glsl", "fragment_core.glsl", "");
+
+    // GLuint core_program;
+    // if(!loadShaders(core_program))
+    // {
+    //     glfwTerminate();
+    // }
     
     //VBO
     GLuint VAO;
@@ -244,11 +178,53 @@ int main(void)
     //Vind VAD
     glBindVertexArray(0);
 
+
+    
+    //values
+    glm::vec3 position(0.f);
+    glm::vec3 rotation(0.f);
+    glm::vec3 scale(1.f);
+    //modelmatrix
+    glm::mat4 ModelMatrix(1.f);
+    ModelMatrix = glm::translate(ModelMatrix, position);
+    ModelMatrix = glm::rotate(ModelMatrix, glm::radians(rotation.x), glm::vec3(1.f, 0.f, 0.f));
+    ModelMatrix = glm::rotate(ModelMatrix, glm::radians(rotation.y), glm::vec3(0.f, 1.f, 0.f));
+    ModelMatrix = glm::rotate(ModelMatrix, glm::radians(rotation.z), glm::vec3(0.f, 0.f, 1.f));
+    ModelMatrix = glm::scale(ModelMatrix, scale);
+
+
+    //view matrix
+    glm::vec3 camPosition(0.f, 0.f, 2.f);
+    glm::vec3 worldUp = glm::vec3(0.f, 1.f, 0.f);
+    glm::vec3 camFront = glm::vec3(0.f, 0.f, -1.f);
+
+    glm::mat4 ViewMatrix(1.f);
+
+    ViewMatrix = glm::lookAt(camPosition, camPosition + camFront, worldUp);
+
+    
+    //projection matrix
+    float fov = 90.f;
+    float nearPlane = 0.1f;
+    float farPlane = 500.f;
+    glm::mat4 ProjectionMatrix(1.f);
+
+    ProjectionMatrix = glm::perspective(glm::radians(fov), static_cast<float>(frameBufferWidth) / frameBufferHeight, nearPlane, farPlane);
+
+
+    core_program.setMat4fv(ModelMatrix, "ModelMatrix", GL_FALSE);
+    core_program.setMat4fv(ViewMatrix, "ViewMatrix", GL_FALSE);
+    core_program.setMat4fv(ProjectionMatrix, "ProjectionMatrix", GL_FALSE);
+
+    
+    glUseProgram(0);
+    
+    
     //main loop
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
-        
+        updateInput(window, position, rotation, scale);
         //update
         updateInput(window);
 
@@ -258,8 +234,27 @@ int main(void)
 
         //draw
 
+        
+
+        //update
+        
+        
+        //move rotate scale
+
+        ModelMatrix = glm::mat4(1.f);
+        ModelMatrix = glm::translate(ModelMatrix, position);
+        ModelMatrix = glm::rotate(ModelMatrix, glm::radians(rotation.x), glm::vec3(1.f, 0.f, 0.f));
+        ModelMatrix = glm::rotate(ModelMatrix, glm::radians(rotation.y), glm::vec3(0.f, 1.f, 0.f));
+        ModelMatrix = glm::rotate(ModelMatrix, glm::radians(rotation.z), glm::vec3(0.f, 0.f, 1.f));
+        ModelMatrix = glm::scale(ModelMatrix, scale);
+
+        core_program.setMat4fv(ModelMatrix, "ModelMatrix", GL_FALSE);
+
+        ProjectionMatrix = glm::perspective(glm::radians(fov), static_cast<float>(frameBufferWidth) / frameBufferHeight, nearPlane, farPlane);
+
+        core_program.setMat4fv(ProjectionMatrix, "ProjectionMatrix", GL_FALSE);   
         //program
-        glUseProgram(core_program);
+        core_program.use();
 
         //bind vao
         glBindVertexArray(VAO);
@@ -278,8 +273,6 @@ int main(void)
     glfwDestroyWindow(window);
     glfwTerminate();
 
-    //delete program
-    glDeleteProgram(core_program);
 
     //end
     glfwTerminate();
