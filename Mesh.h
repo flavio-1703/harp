@@ -13,6 +13,10 @@ private:
     unsigned nrVertices;
     unsigned nrIndices;
 
+    Vertex* vertexArray;
+    GLuint* indexArray;
+
+
 private:
     GLuint VAO;
     GLuint VBO;
@@ -24,14 +28,17 @@ private:
     glm::mat4 ModelMatrix;
 
 private:
-    void initVAO(Vertex* vertexArray, const unsigned& nrVertices, GLuint* indexArray, const unsigned& nrIndices);
-    void initVAO(Primitives* primitive);
+    
+    //void initVAO(Vertex* vertexArray, const unsigned& nrVertices, GLuint* indexArray, const unsigned& nrIndices);
+    void initVAO();
     void initModelMatrix();
 public:
     Mesh(Vertex* vertexArray, const unsigned& nrVertices, GLuint* indexArray, const unsigned& nrIndices, glm::vec3 position,
             glm::vec3 rotation,
             glm::vec3 scale);
     Mesh(Primitives* primitive, glm::vec3 position, glm::vec3 rotation, glm::vec3 scale);
+    Mesh(const Mesh& obj);
+    
     ~Mesh();
 
 public:

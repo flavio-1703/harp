@@ -40,3 +40,15 @@ public:
     Triangle();
 private:
 };
+
+class Pyramid : public Primitives
+{
+public:
+    Pyramid();
+};
+
+class Cube : public Primitives
+{
+public:
+    Cube();
+};

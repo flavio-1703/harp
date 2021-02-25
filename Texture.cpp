@@ -2,11 +2,10 @@
 
 
 //constructor/destructor
-Texture::Texture(const char* fileName, GLenum type, GLint texUnit)
+Texture::Texture(const char* fileName, GLenum type)
 {   
 
     this->type = type;
-    this->texUnit = texUnit;
 
     unsigned char* image = stbi_load(fileName, &this->width, &this->height, NULL, 4);
 
@@ -38,9 +37,9 @@ Texture::~Texture()
     glDeleteTextures(1, &this->id);
 }
 
-void Texture::bind() const
+void Texture::bind(const GLint tex_unit) const
 {
-    glActiveTexture(GL_TEXTURE0 + this->texUnit);
+    glActiveTexture(GL_TEXTURE0 + tex_unit);
     glBindTexture(this->type, this->id);
 }
 

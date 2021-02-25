@@ -1,0 +1,1 @@
+g++ main.cpp Material.cpp Primitives.cpp Model.cpp Texture.cpp Mesh.cpp Shader.cpp Game.cpp stb_image.cpp -lopengl32 -lglfw3 -lglew32

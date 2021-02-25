@@ -10,6 +10,8 @@
 #include "Texture.h"
 #include "Material.h"
 #include "Mesh.h"
+#include "Camera.h"
+#include "Model.h"
 
 
 enum shader_enum
@@ -47,6 +49,23 @@ private:
     const int GL_VER_MINOR;
 
 private:
+    //DELTA TIME
+    float dt;
+    float curTime;
+    float lastTime;
+
+    //MOUSE INPUT
+    double lastMouseX;
+    double lastMouseY;
+    double mouseX;
+    double mouseY;
+    double mouseOffsetX;
+    double mouseOffsetY;
+    bool firstMouse;
+
+    Camera camera;
+
+private:
 //Matrices
     glm::mat4 ViewMatrix;
     glm::vec3 camPos;
@@ -63,6 +82,9 @@ private:
     std::vector<Texture*> textures;
     std::vector<Material*> materials;
     std::vector<Mesh*> meshes;
+    std::vector<Model*> models;
+
+    std::vector<glm::vec3*> lights;
 
 private:
 //Funcs
@@ -74,7 +96,11 @@ private:
     void initShaders();
     void initTextures();
     void initMaterials();
-    void initMeshes();
+    void initModels();
+    void initLights();
+    void initUniforms();
+
+    void updateUniforms();
     
 public:
     Game(const char* title, const int WIDTH, const int HEIGHT, const int GL_VER_MAJOR, const int GL_VER_MINOR, bool resizable);
@@ -90,6 +116,10 @@ public:
 //Funcs
     void update();
     void render();
+    void updateInput();
+    void updateKeyoardInput();
+    void updateMouseInput();
+    void updateDt();
 };
 
 

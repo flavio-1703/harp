@@ -2,7 +2,8 @@
 
 
 Game::Game(const char* title, const int WIDTH, const int HEIGHT, const int GL_VER_MAJOR, const int GL_VER_MINOR, bool resizable)
-    : WIN_WIDTH(WIDTH), WIN_HEIGHT(HEIGHT), GL_VER_MAJOR(GL_VER_MAJOR), GL_VER_MINOR(GL_VER_MINOR)
+    : WIN_WIDTH(WIDTH), WIN_HEIGHT(HEIGHT), GL_VER_MAJOR(GL_VER_MAJOR), GL_VER_MINOR(GL_VER_MINOR),
+    camera(glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 1.f, 0.f))
 {
     this->window = nullptr;
     this->fbWidth = WIN_WIDTH;
@@ -18,11 +19,29 @@ Game::Game(const char* title, const int WIDTH, const int HEIGHT, const int GL_VE
     this->farPlane = 500.f;
     this->ProjectionMatrix = glm::mat4(1.f);
 
+    this->dt = 0.0f;
+    this->curTime = 0.f;
+    this->lastTime = 0.f;
+
+    this->lastMouseX = 0.0;
+    this->lastMouseY = 0.0;
+    this->mouseX = 0.0;
+    this->mouseY = 0.0;
+    this->mouseOffsetX = 0.0;
+    this->mouseOffsetY = 0.0;
+    this->firstMouse = true;
+
+
     this->initGLFW();
     this->initWindow(title, resizable);
     this->initGLEW();
     this->initGLOptions();
     this->initMatrices();
+    this->initShaders();
+    this->initTextures();
+    this->initMaterials();
+    this->initLights();
+    this->initUniforms();
 }
 
 Game::~Game()
@@ -45,9 +64,14 @@ Game::~Game()
         delete this->materials[i];
     }
 
-    for (size_t i = 0; i < this->meshes.size(); i++)
+    for(auto*& i : this->models)
     {
-        delete this->meshes[i];
+        delete i;
+    }
+    
+    for (size_t i = 0; i < this->lights.size(); i++)
+    {
+        delete this->lights[i];
     }
     
 }
@@ -107,18 +131,38 @@ void Game::initGLOptions()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    //INPUT
+    glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 
 void Game::update()
 {
-    glfwPollEvents();
+    this->updateDt();
+    this->updateInput();
+
+    this->models[0]->rotate(glm::vec3(0.f, 1.f, 0.f));
+
+    //this->meshes[0]->rotate(glm::vec3(0.f, 1.f, 0.f));
 }
 
 void Game::render()
 {
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    this->updateUniforms();
+
+    // this->materials[MAT_1]->sendToShader(*this->shaders[SHADER_CORE_PROGRAM]);
+
+    // this->shaders[SHADER_CORE_PROGRAM]->use();
+
+    // this->textures[TEX_PUSHEEN0]->bind(0);
+    // this->textures[TEX_CONTAINER]->bind(1);
+
+    this->models[0]->render(this->shaders[SHADER_CORE_PROGRAM]);
+
 
     glfwSwapBuffers(this->window);
     glFlush();
@@ -154,17 +198,134 @@ void Game::initMatrices()
         this->farPlane);
 }
 
+//SHADERS INIT
 void Game::initShaders()
 {
-    this->shaders.push_back(new Shader(this->GL_VER_MAJOR, this->GL_VER_MINOR, "dasdsa", "sdas"));
+    this->shaders.push_back(new Shader(this->GL_VER_MAJOR, this->GL_VER_MINOR, "vertex_core.glsl", "fragment_core.glsl", ""));
 }
 
 void Game::initTextures()
 {
-    this->textures.push_back(new Texture(" ", GL_TEXTURE_2D, 0));
+    this->textures.push_back(new Texture("pusheen.png", GL_TEXTURE_2D));
+
+    this->textures.push_back(new Texture("container.png", GL_TEXTURE_2D));
 }
 
+//MATERIAL INIT
 void Game::initMaterials()
 {
-    this->materials.push_back(new Material(glm::vec3(0.1f,), glm::vec3(1.f), glm::vec3(1.f), ));
+    this->materials.push_back(new Material(glm::vec3(0.1f), glm::vec3(1.f), glm::vec3(1.f), 0, 1));
+}
+
+//LIGHTS INIT
+void Game::initLights()
+{
+    this->lights.push_back(new glm::vec3(0.f, 0.f, 1.f));
+}
+
+void Game::initUniforms()
+{
+    this->shaders[SHADER_CORE_PROGRAM]->setMat4fv(ViewMatrix, "ViewMatrix", GL_FALSE);
+    this->shaders[SHADER_CORE_PROGRAM]->setMat4fv(ProjectionMatrix, "ProjectionMatrix", GL_FALSE);
+
+    this->shaders[SHADER_CORE_PROGRAM]->setVec3f(*this->lights[0], "lightPos");
+    
+}
+
+void Game::updateUniforms()
+{
+
+    //send the updated matrix to the shader
+    this->ViewMatrix = this->camera.getViewMatrix();
+    //set thhe updated view
+    this->shaders[SHADER_CORE_PROGRAM]->setMat4fv(this->ViewMatrix, "ViewMatrix", false);
+    this->shaders[SHADER_CORE_PROGRAM]->setVec3f(this->camera.getPos(), "cameraPos");
+
+    glfwGetFramebufferSize(this->window, &this->fbHeight, &this->fbHeight);
+
+    this->ProjectionMatrix = glm::perspective(
+        glm::radians(this->fov), 
+        static_cast<float>(this->fbWidth) / this->fbHeight, 
+        this->nearPlane, 
+        this->farPlane);
+
+    this->shaders[SHADER_CORE_PROGRAM]->setMat4fv(this->ProjectionMatrix, "ProjectionMatrix", false);
+}
+
+//INPUT UPDATE
+void Game::updateKeyoardInput()
+{
+    //THESE ARE THE BASIC INPUT FOR THE CAMERA MOVEMENT
+    if (glfwGetKey(this->window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
+        glfwSetWindowShouldClose(this->window, GLFW_TRUE);
+    }
+    if(glfwGetKey(this->window, GLFW_KEY_W) == GLFW_PRESS)
+    {
+        this->camera.move(this->dt, FORWARD);
+    }
+    if (glfwGetKey(this->window, GLFW_KEY_S) == GLFW_PRESS)
+    {
+        this->camera.move(this->dt, BACKWARD);
+    }
+    if (glfwGetKey(this->window, GLFW_KEY_A) == GLFW_PRESS)
+    {
+        this->camera.move(this->dt, LEFT);
+    }
+    if (glfwGetKey(this->window, GLFW_KEY_D) == GLFW_PRESS)
+    {
+        this->camera.move(this->dt, RIGHT);
+    }
+}
+
+void Game::updateMouseInput()
+{
+    glfwGetCursorPos(this->window, &this->mouseX, &this->mouseY);
+
+    if(this->firstMouse)
+    {
+        this->lastMouseX = this->mouseX;
+        this->lastMouseY = this->mouseY;
+        this->firstMouse = false;
+    }
+
+    this->mouseOffsetX = this->mouseX - this->lastMouseX;
+    this->mouseOffsetY = this->lastMouseY - this->mouseY;
+
+    this->lastMouseX = this->mouseX;
+    this->lastMouseY = this->mouseY;
+}
+
+void Game::updateInput()
+{
+    glfwPollEvents();
+
+    this->updateKeyoardInput();
+    this->updateMouseInput();
+    this->camera.updateInput(dt, -1, this->mouseOffsetX, this->mouseOffsetY);
+}
+
+void Game::updateDt()
+{
+    /*
+        We get the difference in time in between updates and multiply it
+        with our movement so that it wont be tied to the framerate
+    */
+    this->curTime = static_cast<float>(glfwGetTime());
+    this->dt = this->curTime - this->lastTime;
+    this->lastTime = this->curTime;
+}
+
+void Game::initModels()
+{
+    this->meshes.push_back(new Mesh(&Cube(), glm::vec3(0.f), glm::vec3(0.f), glm::vec3(1.f)));
+    this->meshes.push_back(new Mesh(&Pyramid(), glm::vec3(0.f), glm::vec3(0.f), glm::vec3(1.f)));
+
+    this->models.push_back(new Model(glm::vec3(0.f), this->materials[0], this->textures[1], this->textures[TEX_CONTAINER],this->meshes));
+
+    for(auto*& i : this->meshes)
+        delete i;
+
+
+    this->meshes.clear();
 }

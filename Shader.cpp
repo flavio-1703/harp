@@ -1,6 +1,7 @@
 #include "Shader.h"
 
-Shader::Shader(const char* vertexFile, const char* fragmentFile, const char* geometryFile)
+Shader::Shader(const int VER_MAJOR, const int VER_MINOR, const char* vertexFile, const char* fragmentFile, const char* geometryFile)
+    :VER_MAJOR(VER_MAJOR), VER_MINOR(VER_MINOR)
 {
     GLuint vertexShader = 0;
     GLuint geometryShader = 0;

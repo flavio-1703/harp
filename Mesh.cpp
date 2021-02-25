@@ -1,6 +1,34 @@
 #include "Mesh.h"
 #include <iostream>
 
+Mesh::Mesh(const Mesh& obj)
+{
+    this->position = obj.position;
+    this->rotation = obj.rotation;
+    this->scale = obj.scale;
+
+    this->nrVertices = obj.nrVertices;
+    this->nrIndices = obj.nrIndices;
+
+    this->vertexArray = new Vertex[this->nrVertices];
+
+    for(size_t i = 0; i < this->nrVertices; i++)
+    {
+        this->vertexArray[i] = obj.vertexArray[i];
+    }
+
+    this->indexArray = new GLuint(this->nrIndices);
+
+    for(size_t i = 0; i < this->nrIndices; i++)
+    {
+        this->indexArray[i] = obj.indexArray[i];
+    }
+
+    this->initVAO();
+    this->updateModelMatrix();
+}
+
+
 Mesh::Mesh( Vertex* vertexArray, 
             const unsigned& 
             nrVertices, 
@@ -15,7 +43,24 @@ Mesh::Mesh( Vertex* vertexArray,
     this->rotation = rotation;
     this->scale = scale;
 
-    this->initVAO(vertexArray, nrVertices, indexArray, nrIndices);
+    this->nrVertices = nrVertices;
+    this->nrIndices = nrIndices;
+
+    this->vertexArray = new Vertex[this->nrVertices];
+
+    for(size_t i = 0; i < nrVertices; i++)
+    {
+        this->vertexArray[i] = vertexArray[i];
+    }
+
+    this->indexArray = new GLuint(this->nrIndices);
+
+    for(size_t i = 0; i < nrIndices; i++)
+    {
+        this->indexArray[i] = indexArray[i];
+    }
+
+    this->initVAO();
     this->updateModelMatrix();
 }
 
@@ -25,7 +70,24 @@ Mesh::Mesh(Primitives* primitive, glm::vec3 position, glm::vec3 rotation, glm::v
     this->rotation = rotation;
     this->scale = scale;
 
-    this->initVAO(primitive);
+    this->nrVertices = primitive->getNrVertices();
+    this->nrIndices = primitive->getNrIndices();
+
+    this->vertexArray = new Vertex[this->nrVertices];
+
+    for(size_t i = 0; i < this->nrVertices; i++)
+    {
+        this->vertexArray[i] = primitive->getVertices()[i];
+    }
+
+    this->indexArray = new GLuint(this->nrIndices);
+
+    for(size_t i = 0; i < this->nrIndices; i++)
+    {
+        this->indexArray[i] = primitive->getIndices()[i];
+    }
+
+    this->initVAO();
     this->updateModelMatrix();
 }
 
@@ -33,15 +95,53 @@ Mesh::~Mesh()
 {
     glDeleteVertexArrays(1, &this->VAO);
     glDeleteBuffers(1, &this->VBO);
-    glDeleteBuffers(1, &this->EBO);
+    if(this->nrIndices > 0)
+    {
+        glDeleteBuffers(1, &this->EBO);
+    }
+
+    delete[] this->vertexArray;
+    delete[] this->indexArray;
 }
 
-void Mesh::initVAO(Vertex* vertexArray, const unsigned& nrVertices, GLuint* indexArray, const unsigned& nrIndices)
-{
-    //set vars
-    this->nrVertices = nrVertices;
-    this->nrIndices = nrIndices;
+// void Mesh::initVAO(Vertex* vertexArray, const unsigned& nrVertices, GLuint* indexArray, const unsigned& nrIndices)
+// {
+//     //set vars
+//     this->nrVertices = nrVertices;
+//     this->nrIndices = nrIndices;
 
+//     //create VEO
+//     glGenVertexArrays(1, &this->VAO);
+//     glBindVertexArray(this->VAO);
+
+//     //VBO
+//     glGenBuffers(1, &this->VBO);
+//     glBindBuffer(GL_ARRAY_BUFFER, this->VBO);
+//     glBufferData(GL_ARRAY_BUFFER, this->nrVertices * sizeof(Vertex), vertexArray, GL_STATIC_DRAW);
+
+
+//     //EBO
+//     glGenBuffers(1, &this->EBO);
+//     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->EBO);
+//     glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->nrIndices * sizeof(GLuint), indexArray, GL_STATIC_DRAW);
+
+//     //Enable
+//     //position
+//     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),(GLvoid*)offsetof(Vertex, position));
+//     glEnableVertexAttribArray(0);
+//     //color
+//     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),(GLvoid*)offsetof(Vertex, color));
+//     glEnableVertexAttribArray(1);
+//     //texcoord
+//     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),(GLvoid*)offsetof(Vertex, texcoord));
+//     glEnableVertexAttribArray(2);
+
+//     //Vind VAD
+//     glBindVertexArray(0);
+// }
+
+void Mesh::initVAO()
+{
     //create VEO
     glGenVertexArrays(1, &this->VAO);
     glBindVertexArray(this->VAO);
@@ -49,49 +149,15 @@ void Mesh::initVAO(Vertex* vertexArray, const unsigned& nrVertices, GLuint* inde
     //VBO
     glGenBuffers(1, &this->VBO);
     glBindBuffer(GL_ARRAY_BUFFER, this->VBO);
-    glBufferData(GL_ARRAY_BUFFER, this->nrVertices * sizeof(Vertex), vertexArray, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, this->nrVertices * sizeof(Vertex), this->vertexArray, GL_STATIC_DRAW);
 
-
-    //EBO
-    glGenBuffers(1, &this->EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->nrIndices * sizeof(GLuint), indexArray, GL_STATIC_DRAW);
-
-    //Enable
-    //position
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),(GLvoid*)offsetof(Vertex, position));
-    glEnableVertexAttribArray(0);
-    //color
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),(GLvoid*)offsetof(Vertex, color));
-    glEnableVertexAttribArray(1);
-    //texcoord
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),(GLvoid*)offsetof(Vertex, texcoord));
-    glEnableVertexAttribArray(2);
-
-    //Vind VAD
-    glBindVertexArray(0);
-}
-
-void Mesh::initVAO(Primitives* primitive)
-{
-    //set vars
-    this->nrVertices = primitive->getNrVertices();
-    this->nrIndices = primitive->getNrIndices();
-
-    //create VEO
-    glGenVertexArrays(1, &this->VAO);
-    glBindVertexArray(this->VAO);
-
-    //VBO
-    glGenBuffers(1, &this->VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, this->VBO);
-    glBufferData(GL_ARRAY_BUFFER, this->nrVertices * sizeof(Vertex), primitive->getVertices(), GL_STATIC_DRAW);
-
-
-    //EBO
-    glGenBuffers(1, &this->EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->nrIndices * sizeof(GLuint), primitive->getIndices(), GL_STATIC_DRAW);
+    if(this->nrIndices > 0)
+    {
+        //EBO
+        glGenBuffers(1, &this->EBO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, this->nrIndices * sizeof(GLuint), this->indexArray , GL_STATIC_DRAW);
+    }
 
     //Enable
     //position
@@ -125,7 +191,21 @@ void Mesh::render(Shader* shader)
     glBindVertexArray(this->VAO);
     
     //render
-    glDrawElements(GL_TRIANGLES, this->nrIndices, GL_UNSIGNED_INT, 0);
+    if(this->nrIndices == 0)
+    {
+        glDrawArrays(GL_TRIANGLES, 0, this->nrVertices);
+    }
+    else
+    {
+        glDrawElements(GL_TRIANGLES, this->nrIndices, GL_UNSIGNED_INT, 0);
+    }
+    
+
+    glBindVertexArray(0);
+    glUseProgram(0);
+    glActiveTexture(0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
     
 }
 

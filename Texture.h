@@ -1,3 +1,5 @@
+#pragma once
+
 #include <GL/glew.h>
 #include <iostream>
 #include <string>
@@ -8,7 +10,7 @@
 class Texture
 {
 public:
-    Texture(const char* fileName, GLenum type, GLint texUnit);
+    Texture(const char* fileName, GLenum type);
     ~Texture();
 
 private:
@@ -17,14 +19,13 @@ private:
     int height;
     unsigned char* localBuffer;
     unsigned int type;
-    GLint texUnit;
+
 public: 
-    void bind() const;
+    void bind(const GLint tex_unit) const;
     void unBind();
     void loadFromFile(const char* fileName);
 public:
     inline GLuint getId() const { return this->id; }
-    inline GLint getTexUnit() const { return this->texUnit; }
     inline int getWidth() const { return width; }
     inline int getHeight() const { return height; }
 };
